@@ -1,6 +1,8 @@
 # 封装get、put、 delete、 post
 # 代码封装方式：1、直接在模块封装 2、在类中封装
 #
+import json
+
 import requests
 
 def get():
@@ -13,11 +15,16 @@ def put():
 # put()
 
 class Response:
-    def __init__(self,response):
+    def __init__(self, response):
         self.__response = response
 
-
-
+    @property
+    def data(self):
+        try:
+            d = {'code': self.__response.status_code, 'data': self.__response.json()}
+        except json.decoder.JSONDecodeError as e:
+            d = {'code': self.__response.status_code, 'data': e.msg}
+        return d
 
 class HttpClient:
     # 初始化函数，创建session保持一个会话
@@ -38,8 +45,8 @@ class HttpClient:
             response = self.__session.get(url=response.headers.get('location'))
         try:
 
-            return response.status_code, response.json()
-
+            # return response.status_code, response.json()
+            return Response(response)
         except:
             # json解析错误
             pass
@@ -48,9 +55,9 @@ class HttpClient:
     def put(self):
         self.__session.put()
 
-    def post(self, url, json=None):
-        response = self.__session.post(url=url, json=json)
-        return response.status_code, response.json()
+    def post(self, url, data=None, headers=None):
+        response = self.__session.post(url=url, data=data, headers=headers)
+        return response.status_code, response.content
 
 
 '''
@@ -65,15 +72,15 @@ client2.get()
 client2.post()
 '''
 
-dataS ='''
- {
+dataS = '''
+{
   "id": 0,
   "petId": 0,
   "quantity": 0,
   "shipDate": "2021-08-30T10:28:22.824Z",
   "status": "placed",
   "complete": false
- }
+}
 '''
 
 if __name__ == '__main__':
@@ -81,5 +88,8 @@ if __name__ == '__main__':
     params = {'status': 'available'}
     s, k = client.get(url='https://petstore.swagger.io/v2/pet/findByStatus', params=params)
     # print(s, k)
-    order = client.post(url='https://petstore.swagger.io/v2/store/order', json=dataS)
-    print(order)
+    headers = {'content-type': 'application/json'}
+    a, b = client.post(url='https://petstore.swagger.io/v2/store/order', data=dataS, headers=headers)
+    print(a, b)
+
+#  问题：post请求，传参是json数据，为什么要用data而不用json??? #
